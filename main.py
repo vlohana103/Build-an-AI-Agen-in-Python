@@ -4,6 +4,7 @@ from prompts import system_prompt
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from functions.call_function import available_functions, call_function
 
 def main():
     print("Hello from ai-agent!")
@@ -25,7 +26,8 @@ def main():
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
     response = client.models.generate_content(model="gemini-2.5-flash", 
     contents=messages,
-    config=types.GenerateContentConfig(system_instruction=system_prompt),
+    config=types.GenerateContentConfig(tools=[available_functions], 
+    system_instruction=system_prompt),
     )
 
     usage = response.usage_metadata    
@@ -37,7 +39,26 @@ def main():
         print(f"User prompt: {args.user_prompt}")
         print(f"Prompt tokens: {usage.prompt_token_count}")
         print(f"Response tokens: {usage.candidates_token_count}")
-    print(response.text)
+    
+    if response.function_calls:
+        function_result_list = []
+        for function_call in response.function_calls:
+            function_call_result = call_function(function_call, verbose=args.verbose)
+            #print(f"Calling function: {function_call.name}({function_call.args})")
+            if not function_call_result.parts:
+                raise Exception("No parts in function call result")
+            if function_call_result.parts[0].function_response is None:
+                raise Exception("Function Response is None")
+            if function_call_result.parts[0].function_response.response is None:
+                raise Exception("function response response is None")
+            function_result_list.append(function_call_result.parts[0])
+            if args.verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+    else:
+        print(response.text)
+
+
+    # print(response.text)
 
 if __name__ == "__main__":
     main()

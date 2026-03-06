@@ -1,4 +1,6 @@
 import os
+from google.genai import types
+
 
 def get_file_content(working_directory, file_path):
     working_directory_abs = os.path.abspath(working_directory)
@@ -23,3 +25,20 @@ def get_file_content(working_directory, file_path):
 
     except Exception as e:
         return f"Error: {e}"
+
+
+schema_get_files_content = types.FunctionDeclaration(
+name="get_file_content",
+description="Gets file Contents in a directory",
+parameters=types.Schema(
+    type=types.Type.OBJECT,
+    properties={
+        "file_path": types.Schema(
+            type=types.Type.STRING,
+            description="file path to list files from, relative to the working directory (default is the working directory itself)",
+        ),
+    },
+    required=["file_path"]
+),
+)
+
